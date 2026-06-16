@@ -48,7 +48,7 @@ This project is for personal use and development. All rights reserved to FNICE T
 
 
 
-
-Site: fnice.netlify.app
-TeamSpeak: 212.33.201.77:5670
-Discord: https://discord.gg/MfbNVPKx
+---
+Site: fnice.netlify.app;
+TeamSpeak: 212.33.201.77:5670;
+Discord: https://discord.gg/MfbNVPKx;
