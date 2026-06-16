@@ -44,3 +44,11 @@ This project was proudly developed by **FNICE Team**.
 This project is for personal use and development. All rights reserved to FNICE Team.
 
 این پروژه برای استفاده شخصی و توسعه قرار گرفته است. تمامی حقوق برای تیم FNICE محفوظ است.
+
+
+
+
+
+Site: fnice.netlify.app
+TeamSpeak: 212.33.201.77:5670
+Discord: https://discord.gg/MfbNVPKx
