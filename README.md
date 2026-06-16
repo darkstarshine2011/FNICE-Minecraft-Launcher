@@ -51,6 +51,6 @@ This project is for personal use and development. All rights reserved to FNICE T
 ---
 [Site](https://fnice.netlify.app)
 
-[TeamSpeak](ts3server://212.33.201.77?port=5670)
+[TeamSpeak](ts3server://212.33.201.77?port=5670) : 212.33.201.77:5670 
 
-[Discord](https://discord.gg/MfbNVPKx)
+[Discord](https://discord.gg/MfbNVPKx) 
