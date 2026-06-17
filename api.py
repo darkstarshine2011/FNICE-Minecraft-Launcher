@@ -4,26 +4,61 @@ import minecraft_launcher_lib
 import subprocess
 import threading
 import json
+import time
+from config import load_config, save_config
 
+# ── Discord RPC──────────────────────────────────────────────────
+try:
+    from pypresence import Presence
+    DISCORD_CLIENT_ID = "1516737168125460490"
+    rpc = None
+
+    def init_rpc():
+        global rpc
+        try:
+            rpc = Presence(DISCORD_CLIENT_ID)
+            rpc.connect()
+            rpc.update(
+                state="Getting ready...",
+                details="FNICE Minecraft Launcher",
+                large_image="logo",
+                large_text="FNICE Minecraft Launcher",
+                start=int(time.time())
+            )
+        except Exception as e:
+            print(f"Discord RPC failed: {e}")
+
+except ImportError:
+    rpc = None
+    def init_rpc(): pass
+
+# ── Minecraft Folder ───────────────────────────────────────────────────────
 MinecraftFolder = minecraft_launcher_lib.utils.get_minecraft_directory()
+
 
 class API:
     def __init__(self):
         self.window = None
+        self.config = load_config()
+        threading.Thread(target=init_rpc, daemon=True).start()
 
     def _js(self, code):
         try:
             self.window.evaluate_js(code)
         except:
             pass
-        
+
+    # ── Config ────────────────────────────────────────────────────────────
+    def get_config(self):
+        return json.dumps(self.config)
+
+    # ── Versions ──────────────────────────────────────────────────────────
     def get_versions(self):
         versions = minecraft_launcher_lib.utils.get_version_list()
         result = [v["id"] for v in versions if v["type"] == "release"]
         return json.dumps(result)
-    
-    def get_modloader_versions(self, mc_version, modloader):
 
+    def get_modloader_versions(self, mc_version, modloader):
         try:
             if modloader == "fabric":
                 versions = minecraft_launcher_lib.fabric.get_all_loader_versions()
@@ -36,7 +71,7 @@ class API:
             elif modloader == "neoforge":
                 all_versions = minecraft_launcher_lib.neoforge.list_neoforge_versions()
                 mc_parts = mc_version.split(".")
-                major = mc_parts[1] 
+                major = mc_parts[1]
                 result = [
                     v for v in all_versions
                     if v.startswith(major + ".") or v.startswith(mc_version + "-")
@@ -44,11 +79,12 @@ class API:
             else:
                 result = []
 
-            return json.dumps(result[:30])   
-        
+            return json.dumps(result[:30])
+
         except Exception as e:
             return json.dumps([])
- 
+
+    # ── Install & Launch ──────────────────────────────────────────────────
     def install_and_launch(self, mc_version, modloader, modloader_version, username):
 
         def task():
@@ -59,7 +95,6 @@ class API:
             }
 
             try:
-
                 if modloader == "vanilla":
                     self._js('updateStatus("Installing Minecraft...")')
                     minecraft_launcher_lib.install.install_minecraft_version(
@@ -68,13 +103,10 @@ class API:
                     launch_version = mc_version
 
                 elif modloader == "fabric":
-
                     self._js('updateStatus("Installing Minecraft...")')
                     minecraft_launcher_lib.install.install_minecraft_version(
                         mc_version, MinecraftFolder, callback=callback
                     )
-
-
                     self._js('updateStatus("Installing Fabric...")')
                     minecraft_launcher_lib.fabric.install_fabric(
                         mc_version,
@@ -82,16 +114,15 @@ class API:
                         loader_version=modloader_version,
                         callback=callback
                     )
-
                     launch_version = f"fabric-loader-{modloader_version}-{mc_version}"
 
                 elif modloader == "forge":
                     self._js('updateStatus("Installing Forge...")')
                     minecraft_launcher_lib.forge.install_forge_version(
-                        modloader_version,  # مثلاً "1.20.1-47.2.0"
+                        modloader_version,
                         MinecraftFolder
                     )
-                    forge_build = modloader_version.split("-")[1]  # "47.2.0"
+                    forge_build = modloader_version.split("-")[1]
                     launch_version = f"{mc_version}-forge-{forge_build}"
 
                 elif modloader == "neoforge":
@@ -102,21 +133,39 @@ class API:
                     )
                     launch_version = f"neoforge-{modloader_version}"
 
-
                 options = minecraft_launcher_lib.utils.generate_test_options()
                 options["username"] = username
+
+
+                self.config["last_username"] = username
+                self.config["last_mc_version"] = mc_version
+                self.config["last_modloader"] = modloader
+                self.config["last_modloader_version"] = modloader_version
+                save_config(self.config)
 
                 self._js('updateStatus("Launching...")')
                 command = minecraft_launcher_lib.command.get_minecraft_command(
                     launch_version, MinecraftFolder, options
                 )
-
-
                 subprocess.Popen(command)
+
+
+                try:
+                    if rpc:
+                        rpc.update(
+                            details=f"Playing Minecraft {mc_version}",
+                            state=f"{modloader.capitalize()} | {username}",
+                            large_image="logo",
+                            large_text="FNICE Minecraft Launcher",
+                            start=int(time.time())
+                        )
+                except:
+                    pass
+
                 self._js('onLaunched()')
 
             except Exception as e:
                 self._js(f'updateStatus("ERROR: {str(e)}")')
-                self._js('document.getElementById("launch-btn").disabled = false')
+                self._js('document.getElementById("launch-trigger").disabled = false')
 
         threading.Thread(target=task, daemon=True).start()
