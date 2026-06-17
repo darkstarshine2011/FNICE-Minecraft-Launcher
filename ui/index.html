@@ -301,6 +301,7 @@
     </div>
 
     <script>
+        // ─── Particle Background ───────────────────────────────────────────────
         const canvas = document.getElementById('bg-canvas');
         const ctx = canvas.getContext('2d');
         let particles = [];
@@ -348,53 +349,86 @@
         initCanvas(); animate();
         window.addEventListener('resize', initCanvas);
 
-        const savedUser = localStorage.getItem("launcher_username") || "FNICE_Player";
-        document.getElementById('username-input').value = savedUser;
-        document.getElementById('display-username').textContent = savedUser;
-
+        // ─── pywebview Ready ───────────────────────────────────────────────────
         window.addEventListener('pywebviewready', async () => {
+
+
             try {
                 const raw = await window.pywebview.api.get_versions();
                 const versions = JSON.parse(raw);
                 const select = document.getElementById('game-version');
                 select.innerHTML = versions.map(v => `<option value="${v}">${v}</option>`).join('');
-            } catch (error) {
-                console.error(error);
+            } catch (e) {
+                console.error("Version load error:", e);
+            }
+
+
+            try {
+                const raw = await window.pywebview.api.get_config();
+                const config = JSON.parse(raw);
+
+                if (config.last_username) {
+                    document.getElementById('username-input').value = config.last_username;
+                    document.getElementById('display-username').textContent = config.last_username;
+                }
+
+                if (config.last_mc_version) {
+                    document.getElementById('game-version').value = config.last_mc_version;
+                }
+
+                if (config.last_modloader) {
+                    document.getElementById('loader-type').value = config.last_modloader;
+                    if (config.last_modloader !== 'vanilla') {
+                        await handleLoaderChange(config.last_modloader_version);
+                    }
+                }
+            } catch (e) {
+                console.error("Config load error:", e);
             }
         });
 
+        // ─── Save Account  ────────────────────────────────────────────────────
         function saveAccount() {
             const val = document.getElementById('username-input').value.trim();
-            if(val) {
-                localStorage.setItem("launcher_username", val);
+            if (val) {
                 document.getElementById('display-username').textContent = val;
             } else {
                 alert("Please enter a valid username!");
             }
         }
 
-        async function handleLoaderChange() {
+        // ─── Loader Change ─────────────────────────────────────────────────────
+        async function handleLoaderChange(preselectVersion = null) {
             const loader = document.getElementById('loader-type').value;
             const container = document.getElementById('loader-version-container');
             const loaderSelect = document.getElementById('loader-version');
 
-            if (loader === 'vanilla') { 
-                container.style.visibility = 'hidden'; 
-                return; 
+            if (loader === 'vanilla') {
+                container.style.visibility = 'hidden';
+                return;
             }
 
             container.style.visibility = 'visible';
             loaderSelect.innerHTML = '<option>Loading...</option>';
 
             const mcVersion = document.getElementById('game-version').value;
-            const raw = await window.pywebview.api.get_modloader_versions(mcVersion, loader);
-            const versions = JSON.parse(raw);
+            try {
+                const raw = await window.pywebview.api.get_modloader_versions(mcVersion, loader);
+                const versions = JSON.parse(raw);
 
-            loaderSelect.innerHTML = versions.length === 0
-                ? '<option>No versions found</option>'
-                : versions.map(v => `<option value="${v}">${v}</option>`).join('');
+                loaderSelect.innerHTML = versions.length === 0
+                    ? '<option>No versions found</option>'
+                    : versions.map(v => `<option value="${v}">${v}</option>`).join('');
+
+                if (preselectVersion) {
+                    loaderSelect.value = preselectVersion;
+                }
+            } catch (e) {
+                console.error("Loader version error:", e);
+            }
         }
 
+        // ─── Launch ────────────────────────────────────────────────────────────
         async function executeLaunch() {
             const username = document.getElementById('username-input').value.trim();
             const mcVersion = document.getElementById('game-version').value;
@@ -402,8 +436,7 @@
             const modloaderVer = document.getElementById('loader-version').value;
 
             if (!username) { alert('Please enter a username!'); return; }
-            
-            localStorage.setItem("launcher_username", username);
+
             document.getElementById('launch-trigger').disabled = true;
 
             await window.pywebview.api.install_and_launch(
@@ -414,6 +447,7 @@
             );
         }
 
+        // ─── Callbacks from Python ───────────────────────────────────────────────
         function updateStatus(msg) {
             document.getElementById('status-msg').innerText = msg;
         }
@@ -421,7 +455,7 @@
         function updateProgress(val) {
             const bar = document.getElementById('progress-fill');
             const max = parseInt(bar.dataset.max || 100);
-            bar.style.width = (val / max * 100) + '%'
+            bar.style.width = (val / max * 100) + '%';
         }
 
         function setMaxProgress(val) {
