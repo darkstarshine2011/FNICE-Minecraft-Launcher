@@ -1,4 +1,7 @@
+
 # FNICE Launcher
+<img width="1266" height="713" alt="Screenshot 2026-06-17 143806" src="https://github.com/user-attachments/assets/59cf9469-078d-450e-b194-7f2705f108be" />
+
 
 A sleek, modern Minecraft launcher built with HTML, CSS, JavaScript, and Python (`pywebview`). Features a highly customized UI with dynamic particle backgrounds, smooth gradients, and gold-accented themes.
 
